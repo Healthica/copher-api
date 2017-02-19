@@ -1,0 +1,14 @@
+[Unit]
+Description=Copher API
+After=network.target
+
+[Service]
+ExecStart=/var/www/copher-api/server/copher-api.js
+Restart=always
+User=ubuntu
+Group=ubuntu
+Environment=PATH=/usr/bin:/usr/local/bin
+WorkingDirectory=/var/www/copher-api
+
+[Install]
+WantedBy=multi-user.target
