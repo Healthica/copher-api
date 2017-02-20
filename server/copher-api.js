@@ -60,6 +60,9 @@ if (process.env.ENV === 'development') {
   })
 }
 
+const Users = require('./Models/Users')
+app.use((req, res, next) => Users.createGuest(db.pool, req, res, next))
+
 const Events = require('./Models/Events')
 
 app.get('/', function(req, res, next) {

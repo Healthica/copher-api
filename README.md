@@ -54,10 +54,20 @@ CREATE TABLE "user_sessions" (
   "sid" varchar NOT NULL COLLATE "default",
   "sess" json NOT NULL,
   "expire" timestamp(6) NOT NULL
-)
-WITH (OIDS=FALSE);
+) WITH (OIDS=FALSE);
 ALTER TABLE copher.user_sessions ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
 ALTER TABLE copher.user_sessions OWNER to copher_admin;
+CREATE TABLE copher.users (
+  id character varying NOT NULL,
+  auth_by character varying NOT NULL,
+  login character varying,
+  password character varying,
+  email character varying,
+  name character varying,
+  PRIMARY KEY (id),
+  CONSTRAINT login UNIQUE (login)
+) WITH (OIDS = FALSE);
+ALTER TABLE copher.users OWNER to copher_admin;
 ```
 ### Deployment ###
 ```
