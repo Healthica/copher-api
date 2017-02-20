@@ -7,8 +7,10 @@ env(__dirname + '/../config/config.env')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
+const flash = require('connect-flash')
 const db = require('./utils/DbPool')
 const uuid = require('uuid')
+const _ = require('lodash')
 
 const session = require('express-session')
 const pgSession = require('connect-pg-simple')(session)
@@ -44,16 +46,17 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: { maxAge: parseInt(process.env.COOKIE_DAYS_TOEXPIRE, 10) * 24 * 60 * 60 * 1000 },
-  genid: function(req) {
+  genid: (req) => {
     return uuid.v4()
   }
 }))
 
+app.use(flash())
 app.use(bodyParser.json())
 
 // Allow CORS - development only
 if (process.env.ENV === 'development') {
-  app.use(function(req, res, next) {
+  app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*")
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     next()
@@ -61,17 +64,61 @@ if (process.env.ENV === 'development') {
 }
 
 const Users = require('./Models/Users')
-app.use((req, res, next) => Users.createGuest(db.pool, req, res, next))
+Users.setDb(db.pool)
+app.use((req, res, next) => Users.createGuest(req, res, next))
+
+// Passport
+const passport = require('passport')
+const LocalStrategy = require('passport-local').Strategy
+passport.use(new LocalStrategy({
+    usernameField: 'login',
+    passwordField: 'password',
+    session: true
+  },
+  (login, password, done) => {
+    Users.checkPassword(login, password, (err, user) => {
+      if (err) { return done(err) }
+      if (!user) {
+        return done(null, false, { message: 'Incorrect username or password' })
+      }
+      return done(null, user)
+    })
+  }
+))
+passport.serializeUser((user, done) => {
+  done(null, user)
+})
+
+passport.deserializeUser((user, done) => {
+  done(null, user)
+})
+app.use(passport.initialize())
+app.use(passport.session())
+
+app.post('/login', bodyParser.urlencoded({ extended: true }), passport.authenticate('local'), (req, res) => {
+  res.json({ success: true, user: _.pick(req.user, ['id', 'name'])})
+})
+app.get('/logout', (req, res) => {
+  req.logout()
+  req.session.destroy((err) => {
+    res.json({ success: err ? false : true })
+  })
+})
+app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
+  Users.register(req, (result) => {
+    res.json(result)
+  })
+})
 
 const Events = require('./Models/Events')
 
-app.get('/', function(req, res, next) {
+app.get('/', (req, res) => {
   res.json({ success: true })
 })
-app.get('/events', function(req, res) {
+app.get('/events', (req, res) => {
   Events.getEvents(req, res)
 })
-app.post('/events', function(req, res) {
+app.post('/events', (req, res) => {
   Events.postEvents(req, res)
 })
 
