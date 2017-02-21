@@ -1,6 +1,7 @@
 const _ = require('lodash')
 const uuid = require('uuid')
 const moment = require('moment')
+const async = require('async')
 
 /**
  * Mocking client-server processing
@@ -212,6 +213,77 @@ function parseFieldValue(field_type, value) {
   }
 }
 
+function processTransactions(user_id, transactions, cb) {
+  let processed_transactions = { success: 0, failures: [] }
+  const q = async.queue((transaction, cb) => {
+    switch (transaction.type) {
+      case 'ADD':
+        addEvent(user_id, transaction.event, cb)
+        break;
+      case 'UPDATE':
+        updateEvent(user_id, transaction.event, cb)
+        break;
+      case 'DELETE':
+        deleteEvent(user_id, transaction.event, cb)
+        break;
+      default:
+        console.error(`Unknown transaction type: ${transaction.type} for user ${user_id}`)
+        cb(new Error('Unknown transaction type'))
+    }
+  }, 1)
+  q.drain = () => {
+    cb(processed_transactions)
+  }
+  q.push(transactions, err => {
+    if (err) {
+      processed_transactions.failures.push(err)
+    } else {
+      processed_transactions.success++
+    }
+  })
+}
+
+function addEvent(user_id, event, cb) {
+  console.log('ADD', event);
+  incrementEventsVersion(user_id, err => {
+    cb(err)
+  })
+}
+function updateEvent(user_id, event, cb) {
+  console.log('UPDATE', event);
+  incrementEventsVersion(user_id, err => {
+    cb(err)
+  })
+}
+function deleteEvent(user_id, event, cb) {
+  console.log('DELETE', event);
+  incrementEventsVersion(user_id, err => {
+    cb(err)
+  })
+}
+
+function getEventsVersion(user_id, cb) {
+  db.query(`SELECT events_version FROM users WHERE id=$1 LIMIT 1`, [user_id], (err, result) => {
+    if (err || result.rows.length !== 1 || typeof result.rows[0].events_version === undefined) {
+      console.error('Error fetching events version for user ' + user_id)
+      cb(null)
+    } else {
+      cb(result.rows[0].events_version)
+    }
+  })
+}
+
+function incrementEventsVersion(user_id, cb) {
+  db.query(`UPDATE users SET events_version = events_version + 1 WHERE id=$1`, [user_id], (err, result) => {
+    if (err || result.rowCount !== 1) {
+      console.error('Error incrementing events version for user ' + user_id)
+      cb(new Error('Error incrementing events version'))
+    } else {
+      cb(null)
+    }
+  })
+}
+
 let db
 
 module.exports = {
@@ -230,9 +302,9 @@ module.exports = {
     }
     db.query(`SELECT e.id, e.title, e.time, f.id "field_id", f.title "field_title", f.type, f.value, f.options
               FROM events e LEFT OUTER JOIN event_fields f ON e.id = f.event_id
-              WHERE e.user_id=$1 ORDER BY time DESC LIMIT 1000`, [req.session.user_id], function(err, result) {
+              WHERE e.user_id=$1 ORDER BY time DESC LIMIT 1000`, [req.session.user_id], (err, result) => {
       if (err) {
-        console.error(req.user.id, err)
+        console.error(req.session.user_id, err)
         return res.json({
           success: false,
           errors: [
@@ -250,24 +322,17 @@ module.exports = {
   },
 
   postEvents(req, res) {
-    _.each(req.body.transactions, t => {
-      if (t.type === 'ADD') {
-        _events.data.push(_.cloneDeep(t).event)
-      } else if (t.type === 'UPDATE') {
-        const index =  _.findIndex(_events.data, { id: t.event.id })
-        _events.data.splice(index, 1, _.cloneDeep(t.event))
-      } else if (t.type === 'DELETE') {
-        const index =  _.findIndex(_events.data, { id: t.event.id })
-        _events.data.splice(index, 1)
-      }
+    getEventsVersion(req.session.user_id, last_version => {
+      processTransactions(req.session.user_id, req.body.transactions, (processed_transactions) => {
+        getEventsVersion(req.session.user_id, new_version => {
+          res.json({
+            success: true,
+            version: new_version,
+            processed_transactions: processed_transactions,
+            has_new_events: req.body.version !== last_version
+          })
+        })
+      })
     })
-    // No new events from other clients since last sync
-    _events.version++
-    res.json({ success: true, version: _.cloneDeep(_events).version })
-
-    // New events from other clients since last sync
-    // _events.version = version + 1
-    // _events.data.push({ id: Math.round(100 * Math.random()), title: 'new stuff' })
-    // res.json(_.cloneDeep(_events))
   }
 }

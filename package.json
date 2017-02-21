@@ -8,6 +8,7 @@
     "start": "node --harmony server/copher-api.js"
   },
   "dependencies": {
+    "async": "^2.1.5",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.16.1",
     "connect-ensure-login": "^0.1.1",
