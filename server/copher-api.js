@@ -54,13 +54,16 @@ app.use(session({
 app.use(flash())
 app.use(bodyParser.json())
 
-// Allow CORS - development only
+// Allow CORS
 if (process.env.ENV === 'development') {
   app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*")
+    res.header("Access-Control-Allow-Origin", "http://localhost:3012")
+    res.header("Access-Control-Allow-Credentials", "true")
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     next()
   })
+} else {
+  //TODO set up production domain
 }
 
 const Users = require('./Models/Users')
@@ -97,6 +100,7 @@ app.use(passport.initialize())
 app.use(passport.session())
 
 app.post('/login', bodyParser.urlencoded({ extended: true }), passport.authenticate('local'), (req, res) => {
+  req.session.user_id = req.user.id
   res.json({ success: true, user: _.pick(req.user, ['id', 'name'])})
 })
 app.get('/logout', (req, res) => {
@@ -115,6 +119,7 @@ app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
 })
 
 const Events = require('./Models/Events')
+Events.setDb(db.pool)
 
 app.get('/', (req, res) => {
   res.json({ success: true })

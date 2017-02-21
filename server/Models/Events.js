@@ -168,6 +168,50 @@ const _events_errors = {
   ]
 }
 
+function normalizeEvents(rows) {
+  const events = _.values(_.groupBy(rows, 'id'))
+  return _.map(events, e => {
+    return {
+      id: e[0].id,
+      title: e[0].title,
+      time: moment(e[0].time).format(),
+      fields: _.transform(e, (fields, f) => {
+        const field = {
+          id: f.field_id,
+          title: f.field_title,
+          type: f.type,
+          value: parseFieldValue(f.type, f.value)
+        }
+        if (f.options) {
+          field.options = f.options
+        }
+        fields.push(field)
+      }, [])
+    }
+  })
+}
+
+function parseFieldValue(field_type, value) {
+  switch (field_type) {
+    case 'duration':
+    case 'rank_stars':
+    case 'weight':
+    case 'length':
+    case 'length':
+    case 'number':
+      return parseFloat(value)
+      break;
+    case 'checkbox':
+      return JSON.parse(value)
+      break;
+    case 'switch':
+      return value === true
+      break;
+    default:
+      return value
+  }
+}
+
 let db
 
 module.exports = {
@@ -176,8 +220,33 @@ module.exports = {
   },
 
   getEvents(req, res) {
-    res.json(_.cloneDeep(_events))
-    // res.json(_events_errors)
+    if (!req.session || !req.session.user_id) {
+      return res.json({
+        success: false,
+        errors: [
+          { id: 'no_user', text: 'Not logged in' }
+        ]
+      })
+    }
+    db.query(`SELECT e.id, e.title, e.time, f.id "field_id", f.title "field_title", f.type, f.value, f.options
+              FROM events e LEFT OUTER JOIN event_fields f ON e.id = f.event_id
+              WHERE e.user_id=$1 ORDER BY time DESC LIMIT 1000`, [req.session.user_id], function(err, result) {
+      if (err) {
+        console.error(req.user.id, err)
+        return res.json({
+          success: false,
+          errors: [
+            { id: 'get_events_failed', text: 'There was a problem loading your events' }
+          ]
+        })
+      } else {
+        return res.json({
+          success: true,
+          version: 1,
+          data: normalizeEvents(result.rows)
+        })
+      }
+    })
   },
 
   postEvents(req, res) {
