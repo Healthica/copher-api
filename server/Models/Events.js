@@ -168,7 +168,13 @@ const _events_errors = {
   ]
 }
 
+let db
+
 module.exports = {
+  setDb(pool) {
+    db = pool
+  },
+
   getEvents(req, res) {
     res.json(_.cloneDeep(_events))
     // res.json(_events_errors)

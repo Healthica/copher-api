@@ -70,6 +70,7 @@ app.use((req, res, next) => Users.createGuest(req, res, next))
 // Passport
 const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
+const ensureLogin = require('connect-ensure-login').ensureLoggedIn('/unauthorized')
 passport.use(new LocalStrategy({
     usernameField: 'login',
     passwordField: 'password',
@@ -104,6 +105,9 @@ app.get('/logout', (req, res) => {
     res.json({ success: err ? false : true })
   })
 })
+app.get('/unauthorized', (req, res) => {
+  res.json({ success: false, errors: ['Unauthorized']})
+})
 app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
   Users.register(req, (result) => {
     res.json(result)
@@ -115,10 +119,10 @@ const Events = require('./Models/Events')
 app.get('/', (req, res) => {
   res.json({ success: true })
 })
-app.get('/events', (req, res) => {
+app.get('/events', ensureLogin, (req, res) => {
   Events.getEvents(req, res)
 })
-app.post('/events', (req, res) => {
+app.post('/events', ensureLogin, (req, res) => {
   Events.postEvents(req, res)
 })
 
