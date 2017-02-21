@@ -3,172 +3,6 @@ const uuid = require('uuid')
 const moment = require('moment')
 const async = require('async')
 
-/**
- * Mocking client-server processing
- */
-const _events = {
-  success: true,
-  version: 1,
-  data: [
-    {
-      id: uuid.v4(),
-      title: 'Sleep',
-      time: moment().subtract(1, 'days').subtract(Math.round(1000 * Math.random()), 'minutes').format(),
-      fields: [
-        {
-          id: '_sleep_duration',
-          title: 'Duration',
-          type: 'duration',
-          value: 450
-        }, {
-          id: '_sleep_quality',
-          title: 'Quality',
-          type: 'rank_stars',
-          value: 3
-        }, {
-          id: '_sleep_type',
-          title: 'Type',
-          type: 'select',
-          value: 'Regular',
-          options: {
-            options: [
-              'Nap',
-              'Regular',
-              'Other'
-            ]
-          }
-        }, {
-          id: '_sleep_is_natural',
-          title: 'Natural Wakeup',
-          type: 'switch',
-          value: false
-        }
-      ]
-    }, {
-      id: uuid.v4(),
-      title: 'Body Weight',
-      time: moment().subtract(2, 'days').subtract(Math.round(1000 * Math.random()), 'minutes').format(),
-      fields: [
-        {
-          id: '_body_weight',
-          title: 'Weight',
-          type: 'weight',
-          value: 85,
-          options: {
-            units: 'kg'
-          }
-        }, {
-          id: '_body_number',
-          title: 'Some Number',
-          type: 'number',
-          value: 43
-        }
-      ]
-    }, {
-      id: uuid.v4(),
-      title: 'Run',
-      time: moment().subtract(2, 'days').subtract(Math.round(1000 * Math.random()), 'minutes').format(),
-      fields: [
-        {
-          id: '_run_duration',
-          title: 'Duration',
-          type: 'duration',
-          value: 130
-        }, {
-          id: '_run_length',
-          title: 'Length',
-          type: 'length',
-          value: 4.5,
-          options: {
-            units: 'km'
-          }
-        }, {
-          id: '_sleep_notes',
-          title: 'Notes',
-          type: 'text',
-          value: "It was slightly raining.\nSlowed down a bit as a precaution."
-        }
-      ]
-    }, {
-      id: uuid.v4(),
-      title: 'Sleep',
-      time: moment().subtract(3, 'days').subtract(Math.round(1000 * Math.random()), 'minutes').format(),
-      fields: [
-        {
-          // id: '_sleep_quality',
-          // title: 'Quality',
-          // type: 'rank_stars',
-          // value: 4.0
-        // }, {
-          id: '_sleep_duration1',
-          title: 'Duration1',
-          type: 'duration',
-          value: 600
-        }, {
-          id: '_sleep_duration2',
-          title: 'Duration2',
-          type: 'duration',
-          value: 500
-        }, {
-          id: '_sleep_duration3',
-          title: 'Duration3',
-          type: 'duration',
-          value: 400
-        }
-      ]
-    }, {
-      id: uuid.v4(),
-      title: 'Headache',
-      time: moment().subtract(4, 'days').subtract(Math.round(1000 * Math.random()), 'minutes').format(),
-      fields: [
-        {
-          id: '_headache_duration',
-          title: 'Duration',
-          type: 'duration',
-          value: 15
-        }, {
-          id: '_headache_intensity',
-          title: 'Intensity',
-          type: 'scale',
-          options: {
-            min: 1,
-            max: 10
-          },
-          value: 7
-        }, {
-          id: '_headache_pain_areas',
-          title: 'Pain Areas',
-          type: 'checkbox',
-          options: {
-            options: [
-              'Head',
-              'Behind the eye',
-              'Neck',
-              'Back of the head'
-            ]
-          },
-          value: ['Behind the eye', 'Neck']
-        }
-      ]
-    }
-  ]
-}
-// _events.data = []
-const _events_new_version = {
-  success: false,
-  has_new_version: true,
-  errors: [
-    { id: 'events_merged_new_version', text: 'New version exists, reload to sync' }
-  ]
-}
-const _events_errors = {
-  success: false,
-  errors: [
-    { id: 'something_went_wrong', text: 'Something went wrong!' },
-    { id: 'some_error', text: 'Old server version' }
-  ]
-}
-
 function normalizeEvents(rows) {
   const events = _.values(_.groupBy(rows, 'id'))
   return _.map(events, e => {
@@ -186,7 +20,9 @@ function normalizeEvents(rows) {
         if (f.options) {
           field.options = f.options
         }
-        fields.push(field)
+        if (field.id !== null && field.type !== null) {
+          fields.push(field)
+        }
       }, [])
     }
   })
@@ -244,21 +80,113 @@ function processTransactions(user_id, transactions, cb) {
 }
 
 function addEvent(user_id, event, cb) {
-  console.log('ADD', event);
-  incrementEventsVersion(user_id, err => {
-    cb(err)
+  //TODO validate event
+  // Create Event
+  db.query('INSERT INTO events (id, user_id, title, "time") VALUES ($1, $2, $3, $4)', [event.id, user_id, event.title, event.time], (err, result) => {
+    if (err || result.rowCount !== 1) {
+      console.error('Create event failed', user_id, err, result)
+      cb(new Error('Create event failed'))
+    } else {
+      if (event.fields.length > 0) {
+        // Create Fields
+        addEventFields(user_id, event.id, event.fields, err => {
+          if (err) {
+            cb(err)
+          } else {
+            incrementEventsVersion(user_id, cb)
+          }
+        })
+      } else {
+        incrementEventsVersion(user_id, cb)
+      }
+    }
+  })
+}
+function addEventFields(user_id, event_id, fields, cb) {
+  //TODO validate type/value
+  const flat_variables = []
+  const flat_values = []
+  let n = 1
+  _.each(fields, f => {
+    flat_values.push(f.id)
+    flat_values.push(event_id)
+    flat_values.push(f.title)
+    flat_values.push(f.type)
+    flat_values.push(f.value)
+    flat_values.push(f.options || null)
+    const vars = []
+    _.times(6, () => {
+      vars.push('$' + n)
+      n++
+    })
+    flat_variables.push(`(${vars.join(',')})`)
+  })
+  db.query('INSERT INTO event_fields (id, event_id, title, type, value, options) VALUES ' + flat_variables.join(','), flat_values, (err, result) => {
+    if (err || result.rowCount !== fields.length) {
+      console.error('Create fields failed', user_id, event_id, err, result)
+      cb(new Error('Create fields failed'))
+    } else {
+      cb(null)
+    }
   })
 }
 function updateEvent(user_id, event, cb) {
-  console.log('UPDATE', event);
-  incrementEventsVersion(user_id, err => {
-    cb(err)
+  //TODO validate event
+  // Update Event
+  db.query('UPDATE events SET title=$3, "time"=$4 WHERE id=$1 AND user_id=$2', [event.id, user_id, event.title, event.time], (err, result) => {
+    if (err || result.rowCount !== 1) {
+      console.error('Update event failed', user_id, event.id, err, result)
+      cb(new Error('Update event failed'))
+    } else {
+      // Delete Fields
+      deleteEventFields(user_id, event, err => {
+        if (err) {
+          cb(err)
+        } else {
+          if (event.fields.length > 0) {
+            // Create Fields
+            addEventFields(user_id, event.id, event.fields, err => {
+              if (err) {
+                cb(err)
+              } else {
+                incrementEventsVersion(user_id, cb)
+              }
+            })
+          } else {
+            incrementEventsVersion(user_id, cb)
+          }
+        }
+      })
+    }
   })
+
 }
 function deleteEvent(user_id, event, cb) {
-  console.log('DELETE', event);
-  incrementEventsVersion(user_id, err => {
-    cb(err)
+  // Delete Fields
+  deleteEventFields(user_id, event, err => {
+    if (err) {
+      cb(err)
+    } else {
+      // Delete Event
+      db.query('DELETE FROM events WHERE events.id=$1 AND events.user_id=$2', [event.id, user_id], (err, result) => {
+        if (err) {
+          console.error('Delete event failed', user_id, event_id, err, result)
+          cb(new Error('Delete event failed'))
+        } else {
+          incrementEventsVersion(user_id, cb)
+        }
+      })
+    }
+  })
+}
+function deleteEventFields(user_id, event, cb) {
+  db.query('DELETE FROM event_fields USING events WHERE events.id=event_fields.event_id AND events.id = $1 AND events.user_id = $2', [event.id, user_id], (err, result) => {
+    if (err) {
+      console.error('Delete fields failed', user_id, event_id, err, result)
+      cb(new Error('Delete fields failed'))
+    } else {
+      cb(null)
+    }
   })
 }
 

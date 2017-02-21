@@ -93,7 +93,6 @@ CREATE TABLE copher.event_fields (
   type character varying NOT NULL,
   value character varying NOT NULL,
   options jsonb,
-  PRIMARY KEY (id),
   CONSTRAINT event FOREIGN KEY (event_id)
     REFERENCES copher.events (id) MATCH SIMPLE
     ON UPDATE CASCADE
