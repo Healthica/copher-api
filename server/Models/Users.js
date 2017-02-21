@@ -31,7 +31,7 @@ module.exports = {
   find(user, cb) {
     db.query('SELECT * FROM users WHERE id=$1 LIMIT 1', [user.id], function(err, result) {
       if (err || result.rowCount !== 1) {
-        cb(err || new Error('User not found'))
+        return cb(err || new Error('User not found'))
       }
       cb(null, result.rows[0])
     })
@@ -40,7 +40,7 @@ module.exports = {
   checkPassword(login, password, cb) {
     db.query('SELECT * FROM users WHERE login=$1 LIMIT 1', [login], function(err, result) {
       if (err || result.rowCount !== 1) {
-        cb(err || new Error('User not found'))
+        return cb(err || new Error('User not found'))
       }
       cb(null, bcrypt.compareSync(password, result.rows[0].password) ? result.rows[0] : false)
     })
@@ -73,16 +73,16 @@ module.exports = {
         if (req.body.name) {
           fields.push(req.body.name)
         }
-        db.query('UPDATE users SET login=$2, password=$3' + (fields.length === 4 ? ', name=$4' : '') + ' WHERE id=$1 AND password=NULL;', fields, function(err, result) {
+        db.query('UPDATE users SET login=$2, password=$3' + (fields.length === 4 ? ', name=$4' : '') + ' WHERE id=$1 AND password IS NULL;', fields, function(err, result) {
           if (err || result.rowCount !== 1) {
             if (err && err.code === '23505') {
               cb({success: false, errors: ['Login name already taken']})
             } else {
               console.error('Register user failed', err, req.session.user_id, req.body, result);
-              cb({ success: false })
+              cb({ success: false, errors: ['There was a problem creating your account. Please try again later.'] })
             }
           } else {
-            cb({ success: true })
+            cb({ success: true, user_id: req.session.user_id })
           }
         })
       })
