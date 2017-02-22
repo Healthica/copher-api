@@ -1,11 +1,11 @@
 {
-  "name": "copher-api",
+  "name": "veeta-api",
   "version": "1.0.0",
-  "main": "server/copher-api.js",
-  "repository": "https://github.com/Healthica/copher-api",
+  "main": "server/veeta-api.js",
+  "repository": "https://github.com/Healthica/veeta-api",
   "author": "Guy Brukhis <guy.br7@gmail.com>",
   "scripts": {
-    "start": "node --harmony server/copher-api.js"
+    "start": "node --harmony server/veeta-api.js"
   },
   "dependencies": {
     "async": "^2.1.5",
