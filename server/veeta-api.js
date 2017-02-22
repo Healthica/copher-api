@@ -114,7 +114,15 @@ app.get('/unauthorized', (req, res) => {
 })
 app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
   Users.register(req, (result) => {
-    res.json(result)
+    if (result.success === true) {
+      Users.find({ id: req.session.user_id }, (err, user) => {
+        req.login(user, err => {
+          res.json(result)
+        })
+      })
+    } else {
+      res.json(result)
+    }
   })
 })
 
