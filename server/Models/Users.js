@@ -69,11 +69,11 @@ module.exports = {
     // Update DB
     bcrypt.genSalt(10, function(err, salt) {
       bcrypt.hash(req.body.password, salt, function(err, hash) {
-        const fields = [req.session.user_id, req.body.login, hash]
+        const fields = [req.session.user_id, req.body.login, hash, 'password']
         if (req.body.name) {
           fields.push(req.body.name)
         }
-        db.query('UPDATE users SET login=$2, password=$3' + (fields.length === 4 ? ', name=$4' : '') + ' WHERE id=$1 AND password IS NULL;', fields, function(err, result) {
+        db.query('UPDATE users SET login=$2, password=$3, auth_by=$4' + (fields.length === 5 ? ', name=$5' : '') + ' WHERE id=$1 AND password IS NULL;', fields, function(err, result) {
           if (err || result.rowCount !== 1) {
             if (err && err.code === '23505') {
               cb({success: false, errors: ['Login name already taken']})

@@ -101,7 +101,7 @@ app.use(passport.session())
 
 app.post('/login', bodyParser.urlencoded({ extended: true }), passport.authenticate('local'), (req, res) => {
   req.session.user_id = req.user.id
-  res.json({ success: true, user: _.pick(req.user, ['id', 'name'])})
+  res.json({ success: true, user: _.pick(req.user, ['id', 'name', 'auth_by'])})
 })
 app.get('/logout', (req, res) => {
   req.logout()
@@ -117,12 +117,22 @@ app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
     if (result.success === true) {
       Users.find({ id: req.session.user_id }, (err, user) => {
         req.login(user, err => {
-          res.json(result)
+          res.json({ success: true, user: _.pick(user, ['id', 'name', 'auth_by']) })
         })
       })
     } else {
       res.json(result)
     }
+  })
+})
+app.get('/user', (req, res) => {
+  res.json({
+    success: true,
+    user: Object.assign({
+      id: req.session.user_id,
+      name: 'Guest',
+      auth_by: req.session.auth_by
+    }, _.pick(req.user, ['id', 'name', 'auth_by']))
   })
 })
 
@@ -132,10 +142,10 @@ Events.setDb(db.pool)
 app.get('/', (req, res) => {
   res.json({ success: true })
 })
-app.get('/events', ensureLogin, (req, res) => {
+app.get('/events', /*ensureLogin,*/ (req, res) => {
   Events.getEvents(req, res)
 })
-app.post('/events', ensureLogin, (req, res) => {
+app.post('/events', /*ensureLogin,*/ (req, res) => {
   Events.postEvents(req, res)
 })
 
