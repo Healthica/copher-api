@@ -42,10 +42,21 @@ function parseFieldValue(field_type, value) {
       return JSON.parse(value)
       break;
     case 'switch':
-      return value === true
+      return value === 'true'
       break;
     default:
       return value
+  }
+}
+
+function stringifyFieldValue(field_type, value) {
+  switch (field_type) {
+    case 'select':
+    case 'text':
+      return value
+      break;
+    default:
+      return JSON.stringify(value)
   }
 }
 
@@ -112,7 +123,7 @@ function addEventFields(user_id, event_id, fields, cb) {
     flat_values.push(event_id)
     flat_values.push(f.title)
     flat_values.push(f.type)
-    flat_values.push(f.value)
+    flat_values.push(stringifyFieldValue(f.type, f.value))
     flat_values.push(f.options || null)
     const vars = []
     _.times(6, () => {
