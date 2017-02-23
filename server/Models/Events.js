@@ -251,10 +251,12 @@ module.exports = {
           ]
         })
       } else {
-        return res.json({
-          success: true,
-          version: 1,
-          data: normalizeEvents(result.rows)
+        getEventsVersion(req.session.user_id, version => {
+          return res.json({
+            success: true,
+            version: version,
+            data: normalizeEvents(result.rows)
+          })
         })
       }
     })
