@@ -33,7 +33,6 @@ Set up a PostgreSQL DB (version 9.6 or greater), then create a database:
 ```sql
 CREATE DATABASE veeta_db WITH OWNER = postgres ENCODING = 'UTF8' CONNECTION LIMIT = -1;
 REVOKE ALL ON DATABASE veeta_db FROM public;
-CREATE SCHEMA veeta;
 ```
 Then, create an admin user and set its permissions:
 ```sql
@@ -45,8 +44,7 @@ Then, create a schema with the admin user as its owner:
 CREATE SCHEMA veeta AUTHORIZATION veeta_admin;
 SET search_path = veeta;
 ALTER ROLE veeta_admin IN DATABASE veeta_db SET search_path = veeta;
-GRANT USAGE  ON SCHEMA veeta TO veeta_admin;
-GRANT CREATE ON SCHEMA veeta TO veeta_admin;
+GRANT USAGE, CREATE ON SCHEMA veeta TO veeta_admin;
 ```
 Then, import a snapshot, or create the essential tables:
 ```sql
