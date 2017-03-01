@@ -26,6 +26,11 @@ module.exports = {
             { id: 'get_charts_failed', text: 'There was a problem loading your charts' }
           ]
         })
+      } else if (result.rows.length !== 1) {
+        return res.json({
+          success: true,
+          charts: []
+        })
       } else {
         return res.json({
           success: true,
