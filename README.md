@@ -97,6 +97,17 @@ CREATE TABLE veeta.event_fields (
     ON DELETE RESTRICT
 ) WITH ( OIDS = FALSE );
 ALTER TABLE veeta.event_fields OWNER to veeta_admin;
+
+CREATE TABLE veeta.charts (
+  user_id character varying NOT NULL,
+  data jsonb NOT NULL,
+  PRIMARY KEY (user_id),
+  CONSTRAINT "user" FOREIGN KEY (user_id)
+    REFERENCES veeta.users (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION
+) WITH ( OIDS = FALSE );
+ALTER TABLE veeta.charts OWNER to veeta_admin;
 ```
 ### Deployment ###
 ```

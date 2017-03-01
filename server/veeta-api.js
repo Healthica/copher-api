@@ -137,7 +137,9 @@ app.get('/user', (req, res) => {
 })
 
 const Events = require('./Models/Events')
+const Charts = require('./Models/Charts')
 Events.setDb(db.pool)
+Charts.setDb(db.pool)
 
 app.get('/', (req, res) => {
   res.json({ success: true })
@@ -147,6 +149,12 @@ app.get('/events', /*ensureLogin,*/ (req, res) => {
 })
 app.post('/events', /*ensureLogin,*/ (req, res) => {
   Events.postEvents(req, res)
+})
+app.get('/charts', /*ensureLogin,*/ (req, res) => {
+  Charts.getCharts(req, res)
+})
+app.post('/charts', /*ensureLogin,*/ (req, res) => {
+  Charts.postCharts(req, res)
 })
 
 app.listen(process.env.PORT)
