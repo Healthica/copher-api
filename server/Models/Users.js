@@ -87,5 +87,59 @@ module.exports = {
         })
       })
     })
+  },
+
+  updateSession(req, cb) {
+    this.find({ id: req.session.user_id }, (err, user) => {
+      req.login(user, err => {
+        cb(err)
+      })
+    })
+  },
+
+  updateProfile(req, cb) {
+    // Validate fields
+    const errors = []
+    const fieldsDict = {}
+    if (!req.session.user_id) {
+      errors.push('Not logged in')
+    }
+    if (req.body.name) {
+      if (req.body.name.length > 16) {
+        errors.push('Display name too long')
+      } else {
+        fieldsDict.name = req.body.name
+      }
+    }
+    if (_.keys(fieldsDict).length === 0) {
+      errors.push('Nothing to update')
+    }
+    if (errors.length !== 0) {
+      cb({success: false, errors: errors})
+      return
+    }
+
+    // Update DB
+    let n = 2
+    const sql = _.reduce(fieldsDict, (result, value, key) => {
+      result.fields.push(`${key}=$${n}`)
+      result.values.push(value)
+      n++
+      return result
+    }, { fields: [], values: [] })
+    db.query('UPDATE users SET ' + sql.fields.join(', ') + ' WHERE id=$1;', _.concat(req.session.user_id, sql.values), (err, result) => {
+      if (err || result.rowCount !== 1) {
+        console.error('Update user failed', err, req.session.user_id, req.body, result);
+        cb({ success: false, errors: ['There was a problem updating your profile. Please try again later.'] })
+      } else {
+        this.updateSession(req, err => {
+          if (err) {
+            cb({ success: false })
+          } else {
+            cb({ success: true })
+          }
+        })
+      }
+    })
   }
 }
