@@ -90,11 +90,12 @@ passport.use(new LocalStrategy({
   }
 ))
 passport.serializeUser((user, done) => {
-  done(null, user)
+  done(null, { id: user.id })
 })
-
 passport.deserializeUser((user, done) => {
-  done(null, user)
+  Users.find({ id: user.id }, (err, user) => {
+    done(null, user)
+  })
 })
 app.use(passport.initialize())
 app.use(passport.session())
@@ -123,6 +124,11 @@ app.post('/register', bodyParser.urlencoded({ extended: true }), (req, res) => {
     } else {
       res.json(result)
     }
+  })
+})
+app.post('/profile/update', (req, res) => {
+  Users.updateProfile(req, (result) => {
+    res.json(result)
   })
 })
 app.get('/user', (req, res) => {
