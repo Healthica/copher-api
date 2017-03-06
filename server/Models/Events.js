@@ -31,19 +31,18 @@ function normalizeEvents(rows) {
 function parseFieldValue(field_type, value) {
   switch (field_type) {
     case 'duration':
-    case 'rank_stars':
+    case 'intensity':
     case 'weight':
     case 'length':
-    case 'length':
-    case 'number':
+    case 'rank_stars':
+    case 'units':
       return parseFloat(value)
-      break;
-    case 'checkbox':
-      return JSON.parse(value)
       break;
     case 'switch':
       return value === 'true'
       break;
+    case 'text':
+    case 'select':
     default:
       return value
   }
@@ -51,11 +50,18 @@ function parseFieldValue(field_type, value) {
 
 function stringifyFieldValue(field_type, value) {
   switch (field_type) {
-    case 'select':
     case 'text':
+    case 'select':
       return value
       break;
     default:
+    case 'duration':
+    case 'intensity':
+    case 'weight':
+    case 'length':
+    case 'rank_stars':
+    case 'switch':
+    case 'units':
       return JSON.stringify(value)
   }
 }
