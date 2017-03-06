@@ -8,6 +8,21 @@ module.exports = {
     db = pool
   },
 
+  getAllCharts(req, cb) {
+    if (!req.session || !req.session.user_id) {
+      cb(new Error('Not logged in'))
+    }
+    db.query(`SELECT data FROM charts WHERE user_id=$1 LIMIT 1`, [req.session.user_id], (err, result) => {
+      if (err) {
+        cb(err)
+      } else if (result.rows.length !== 1) {
+        cb(null, [])
+      } else {
+        cb(null, result.rows[0].data.charts)
+      }
+    })
+  },
+
   getCharts(req, res) {
     if (!req.session || !req.session.user_id) {
       return res.json({

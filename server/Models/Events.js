@@ -230,6 +230,21 @@ module.exports = {
     db = pool
   },
 
+  getAllEvents(req, cb) {
+    if (!req.session || !req.session.user_id) {
+      cb(new Error('Not logged in'))
+    }
+    db.query(`SELECT e.id, e.title, e.time, f.id "field_id", f.title "field_title", f.type, f.value, f.options
+              FROM events e LEFT OUTER JOIN event_fields f ON e.id = f.event_id
+              WHERE e.user_id=$1 ORDER BY time DESC`, [req.session.user_id], (err, result) => {
+      if (err) {
+        cb(err)
+      } else {
+        cb(null, normalizeEvents(result.rows))
+      }
+    })
+  },
+
   getEvents(req, res) {
     if (!req.session || !req.session.user_id) {
       return res.json({

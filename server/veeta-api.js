@@ -165,5 +165,11 @@ app.post('/charts', /*ensureLogin,*/ (req, res) => {
   Charts.postCharts(req, res)
 })
 
+const Download = require('./Models/Download')
+Download.setDb(db.pool)
+app.get('/download', (req, res) => {
+  Download.getData(req, res)
+})
+
 app.listen(process.env.PORT)
 console.log('Listening on port ' + process.env.PORT)
