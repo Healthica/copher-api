@@ -124,21 +124,22 @@ function addEventFields(user_id, event_id, fields, cb) {
   const flat_variables = []
   const flat_values = []
   let n = 1
-  _.each(fields, f => {
+  _.each(fields, (f, i) => {
     flat_values.push(f.id)
     flat_values.push(event_id)
     flat_values.push(f.title)
     flat_values.push(f.type)
     flat_values.push(stringifyFieldValue(f.type, f.value))
     flat_values.push(f.options || null)
+    flat_values.push(i + 1)
     const vars = []
-    _.times(6, () => {
+    _.times(7, () => {
       vars.push('$' + n)
       n++
     })
     flat_variables.push(`(${vars.join(',')})`)
   })
-  db.query('INSERT INTO event_fields (id, event_id, title, type, value, options) VALUES ' + flat_variables.join(','), flat_values, (err, result) => {
+  db.query('INSERT INTO event_fields (id, event_id, title, type, value, options, "order") VALUES ' + flat_variables.join(','), flat_values, (err, result) => {
     if (err || result.rowCount !== fields.length) {
       console.error('Create fields failed', user_id, event_id, err, result)
       cb(new Error('Create fields failed'))
@@ -242,7 +243,7 @@ module.exports = {
     }
     db.query(`SELECT e.id, e.title, e.time, f.id "field_id", f.title "field_title", f.type, f.value, f.options
               FROM events e LEFT OUTER JOIN event_fields f ON e.id = f.event_id
-              WHERE e.user_id=$1 ORDER BY time DESC`, [req.session.user_id], (err, result) => {
+              WHERE e.user_id=$1 ORDER BY time DESC, f.order`, [req.session.user_id], (err, result) => {
       if (err) {
         cb(err)
       } else {
