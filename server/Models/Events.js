@@ -263,7 +263,7 @@ module.exports = {
     }
     db.query(`SELECT e.id, e.title, e.time, f.id "field_id", f.title "field_title", f.type, f.value, f.options
               FROM events e LEFT OUTER JOIN event_fields f ON e.id = f.event_id
-              WHERE e.user_id=$1 ORDER BY time DESC LIMIT 1000`, [req.session.user_id], (err, result) => {
+              WHERE e.user_id=$1 ORDER BY time DESC, f.order LIMIT 1000`, [req.session.user_id], (err, result) => {
       if (err) {
         console.error(req.session.user_id, err)
         return res.json({
