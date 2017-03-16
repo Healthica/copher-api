@@ -39,6 +39,10 @@ Then, create an admin user and set its permissions:
 CREATE ROLE veeta_admin LOGIN PASSWORD 'secure_password';
 GRANT CONNECT ON DATABASE veeta_db TO veeta_admin;
 ```
+For RDS/Google-Cloud, grant veeta_admin to the default user (postgres):
+```sql
+GRANT veeta_admin TO postgres WITH ADMIN OPTION;
+```
 Then, create a schema with the admin user as its owner:
 ```sql
 CREATE SCHEMA veeta AUTHORIZATION veeta_admin;
