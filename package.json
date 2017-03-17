@@ -22,6 +22,7 @@
     "passport": "^0.3.2",
     "passport-local": "^1.0.0",
     "pg": "^6.1.2",
+    "shipit-cli": "^3.0.0",
     "uuid": "^3.0.1"
   },
   "license": "GNU GPLv3"
