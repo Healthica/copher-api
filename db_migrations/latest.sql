@@ -14,6 +14,7 @@ CREATE TABLE veeta.users (
   email character varying,
   name character varying,
   events_version integer NOT NULL DEFAULT 1,
+  last_modified timestamp without time zone,
   PRIMARY KEY (id),
   CONSTRAINT login UNIQUE (login)
 ) WITH (OIDS = FALSE);
