@@ -134,14 +134,20 @@ app.post('/profile/update', (req, res) => {
   })
 })
 app.get('/user', (req, res) => {
+  const defaults = {
+    id: req.session.user_id,
+    name: 'Guest',
+    auth_by: req.session.auth_by
+  }
+  if (!_.has(req.session, 'first_request')) {
+    defaults.show_onboarding = true
+  }
   res.json({
     success: true,
-    user: Object.assign({
-      id: req.session.user_id,
-      name: 'Guest',
-      auth_by: req.session.auth_by
-    }, _.pick(req.user, ['id', 'name', 'auth_by']))
+    user: Object.assign(defaults, _.pick(req.user, ['id', 'name', 'auth_by']))
   })
+  req.session.first_request = false
+  req.session.save()
 })
 
 const Events = require('./Models/Events')
