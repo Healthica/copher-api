@@ -3,6 +3,7 @@
 const _ = require('lodash')
 const uuid = require('uuid')
 const bcrypt = require('bcryptjs')
+const moment = require('moment')
 
 let db
 
@@ -28,8 +29,17 @@ module.exports = {
     }
   },
 
+  updateLastModified(user_id) {
+    const now = moment.utc().format('YYYY-MM-DD HH:mm:ss')
+    db.query('UPDATE users SET last_modified=$2 WHERE id=$1;', [user_id, now], (err, result) => {
+      if (err) {
+        console.error('updateLastModified failed', user_id, result, err)
+      }
+    })
+  },
+
   find(user, cb) {
-    db.query('SELECT * FROM users WHERE id=$1 LIMIT 1', [user.id], function(err, result) {
+    db.query('SELECT * FROM users WHERE id=$1 LIMIT 1', [user.id], (err, result) => {
       if (err || result.rowCount !== 1) {
         return cb(err || new Error('User not found'))
       }
@@ -38,7 +48,7 @@ module.exports = {
   },
 
   checkPassword(login, password, cb) {
-    db.query('SELECT * FROM users WHERE login=$1 LIMIT 1', [login], function(err, result) {
+    db.query('SELECT * FROM users WHERE login=$1 LIMIT 1', [login], (err, result) => {
       if (err || result.rowCount !== 1) {
         return cb(err || new Error('User not found'))
       }

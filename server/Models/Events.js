@@ -2,6 +2,7 @@ const _ = require('lodash')
 const uuid = require('uuid')
 const moment = require('moment')
 const async = require('async')
+const Users = require('./Users')
 
 function normalizeEvents(rows) {
   const events = _.values(_.groupBy(rows, 'id'))
@@ -294,6 +295,7 @@ module.exports = {
             processed_transactions: processed_transactions,
             has_new_events: req.body.version !== last_version
           })
+          Users.updateLastModified(req.session.user_id)
         })
       })
     })
